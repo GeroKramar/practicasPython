@@ -1,6 +1,8 @@
+import firebase_admin
+from firebase_admin import credentials, auth
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS  # Importar CORS
+from flask_cors import CORS
 
 app = Flask(__name__)
 
@@ -12,6 +14,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:root@localh
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+# Inicializar Firebase Admin con la clave privada
+cred = credentials.Certificate("config/key.json")
+firebase_admin.initialize_app(cred)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -25,11 +31,30 @@ with app.app_context():
 
 @app.route('/users', methods=['POST'])
 def add_user():
-    data = request.get_json()
-    new_user = User(firebase_uid=data['firebase_uid'], email=data['email'], name=data['name'])
-    db.session.add(new_user)
-    db.session.commit()
-    return jsonify({"message": "User created"}), 201
+    token = request.headers.get('Authorization').split(' ')[1]  # El token JWT viene en el header 'Authorization'
+    
+    try:
+        # Verificar el token en Firebase
+        decoded_token = auth.verify_id_token(token)
+        firebase_uid = decoded_token['uid']
+        email = decoded_token['email']
+        name = decoded_token.get('name', 'No Name Provided')
+
+        # Verificar si el usuario ya está en la base de datos local
+        user = User.query.filter_by(firebase_uid=firebase_uid).first()
+        
+        if user:
+            return jsonify({"message": "User already exists"}), 200
+
+        # Si el usuario no existe en la base de datos, lo creamos
+        new_user = User(firebase_uid=firebase_uid, email=email, name=name)
+        db.session.add(new_user)
+        db.session.commit()
+
+        return jsonify({"message": "User created"}), 201
+
+    except firebase_admin.exceptions.FirebaseError as e:
+        return jsonify({"error": str(e)}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
