@@ -1,8 +1,7 @@
-// src/firebase.js
-import firebase from "firebase/app";
-import "firebase/auth";
 
-// Configura tu Firebase aquí (reemplaza con tus credenciales)
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+
 const firebaseConfig = {
   apiKey: "AIzaSyCh71ojP3_mxhMXiDPUZq0YGvauyj2ah0g",
   authDomain: "projecto1corpora.firebaseapp.com",
@@ -13,7 +12,5 @@ const firebaseConfig = {
   measurementId: "G-J12DK30906",
 };
 
-firebase.initializeApp(firebaseConfig);
-
-const auth = firebase.auth();
-export { auth, firebase };
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
