@@ -65,7 +65,7 @@ const Login = () => {
       const data = await response.json();
 
       if (response.status === 201) {
-        setMessage(`Welcome! Token is valid for ${data.message}`);
+        setMessage(`Welcome! Token is valid... ${data.message}`);
       } else {
         setMessage("Invalid credentials!");
       }
